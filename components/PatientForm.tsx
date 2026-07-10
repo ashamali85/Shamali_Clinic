@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { SubmitButton } from '@/components/SubmitButton';
 
@@ -27,7 +27,7 @@ export type PatientFormValues = {
   paciNumber: string;
 };
 
-type ActionState = { error?: string } | null;
+type ActionState = { error?: string; ok?: true; fileNumber?: string } | null;
 type ServerAction = (prev: ActionState, formData: FormData) => Promise<ActionState>;
 
 const EMPTY: PatientFormValues = {
@@ -42,7 +42,10 @@ export function PatientForm({
   governorates,
   nationalities,
   areaToGovernorate,
-  initial
+  initial,
+  variant = 'page',
+  onSuccess,
+  onCancel
 }: {
   mode: 'create' | 'edit';
   action: ServerAction;
@@ -50,16 +53,29 @@ export function PatientForm({
   nationalities: NationalityOption[];
   areaToGovernorate: Record<string, string>;
   initial?: PatientFormValues;
+  /** 'page' wraps the form in a card; 'modal' renders bare for a dialog body. */
+  variant?: 'page' | 'modal';
+  /** Called after a successful save (used by the modal to close + refresh). */
+  onSuccess?: (result: { fileNumber?: string }) => void;
+  /** Cancel handler for the modal footer; falls back to a /patients link. */
+  onCancel?: () => void;
 }) {
   const [state, formAction] = useActionState<ActionState, FormData>(action, null);
   const start = initial ?? EMPTY;
   const [areaId, setAreaId] = useState(start.areaId);
 
+  // When the server action reports success, notify the parent.
+  useEffect(() => {
+    if (state?.ok) onSuccess?.({ fileNumber: state.fileNumber });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
   const governorate = areaId ? areaToGovernorate[areaId] ?? '' : '';
   const isEdit = mode === 'edit';
+  const inModal = variant === 'modal';
 
-  return (
-    <form action={formAction} className="card card-pad-lg" noValidate>
+  const fields = (
+    <>
       {isEdit && initial?.id && <input type="hidden" name="id" value={initial.id} />}
       {state?.error && <div className="alert alert-error">{state.error}</div>}
 
@@ -189,13 +205,44 @@ export function PatientForm({
           </div>
         </div>
       </div>
+    </>
+  );
 
-      <div className="row" style={{ justifyContent: 'flex-end', gap: 12, marginTop: 22 }}>
+  const footer = (
+    <div
+      className="row"
+      style={{
+        justifyContent: 'flex-end',
+        gap: 12,
+        ...(inModal ? {} : { marginTop: 22 })
+      }}
+    >
+      {onCancel ? (
+        <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+      ) : (
         <Link href="/patients" className="btn btn-ghost">Cancel</Link>
-        <SubmitButton className="btn btn-primary" pendingText="Saving…">
-          {isEdit ? 'Save changes' : 'Save patient'}
-        </SubmitButton>
-      </div>
+      )}
+      <SubmitButton className="btn btn-primary" pendingText="Saving…">
+        {isEdit ? 'Save changes' : 'Save patient'}
+      </SubmitButton>
+    </div>
+  );
+
+  // In a modal, the scrollable body and sticky footer are laid out here so the
+  // long form scrolls inside the dialog while the actions stay visible.
+  if (inModal) {
+    return (
+      <form action={formAction} noValidate className="modal-form">
+        <div className="modal-form-body">{fields}</div>
+        <div className="modal-form-foot">{footer}</div>
+      </form>
+    );
+  }
+
+  return (
+    <form action={formAction} className="card card-pad-lg" noValidate>
+      {fields}
+      {footer}
     </form>
   );
 }

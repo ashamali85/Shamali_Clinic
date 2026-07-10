@@ -160,7 +160,9 @@ export async function createPatientAction(_prev: unknown, formData: FormData) {
   );
 
   revalidatePath('/patients');
-  redirect('/patients');
+  // Return success so the caller (modal) can close and refresh in place. Pages
+  // that want a redirect can act on `ok` themselves.
+  return { ok: true as const, fileNumber };
 }
 
 // ---------------------------------------------------------------------------
@@ -224,7 +226,7 @@ export async function updatePatientAction(_prev: unknown, formData: FormData) {
 
   revalidatePath('/patients');
   revalidatePath(`/patients/${id}`);
-  redirect('/patients');
+  return { ok: true as const };
 }
 
 // ---------------------------------------------------------------------------

@@ -1,9 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import Link from 'next/link';
-import { deletePatientAction } from '@/lib/actions';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { deletePatientAction, updatePatientAction } from '@/lib/actions';
 import { SubmitButton } from '@/components/SubmitButton';
+import {
+  PatientForm,
+  type GovernorateGroup,
+  type NationalityOption,
+  type PatientFormValues
+} from '@/components/PatientForm';
 
 export type PatientRow = {
   id: string;
@@ -14,10 +20,17 @@ export type PatientRow = {
   gender: string;
   civilId: string;
   mobile1: string;
-  nationality: string;
-  area: string;
-  governorate: string;
+  mobile2: string | null;
   email: string | null;
+  dateOfBirth: string; // yyyy-mm-dd
+  nationality: string;
+  nationalityId: string;
+  area: string;
+  areaId: string;
+  governorate: string;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  paciNumber: string | null;
 };
 
 type SortKey = 'fileNumber' | 'name' | 'gender' | 'nationality' | 'area' | 'mobile1';
@@ -26,11 +39,44 @@ function fullName(p: PatientRow) {
   return [p.firstName, p.middleName, p.lastName].filter(Boolean).join(' ');
 }
 
-export function PatientTable({ patients }: { patients: PatientRow[] }) {
+function toFormValues(p: PatientRow): PatientFormValues {
+  return {
+    id: p.id,
+    fileNumber: p.fileNumber,
+    firstName: p.firstName,
+    middleName: p.middleName ?? '',
+    lastName: p.lastName,
+    gender: p.gender,
+    dateOfBirth: p.dateOfBirth,
+    nationalityId: p.nationalityId,
+    mobile1: p.mobile1,
+    mobile2: p.mobile2 ?? '',
+    email: p.email ?? '',
+    addressLine1: p.addressLine1 ?? '',
+    addressLine2: p.addressLine2 ?? '',
+    areaId: p.areaId,
+    civilId: p.civilId,
+    paciNumber: p.paciNumber ?? ''
+  };
+}
+
+export function PatientTable({
+  patients,
+  governorates,
+  nationalities,
+  areaToGovernorate
+}: {
+  patients: PatientRow[];
+  governorates: GovernorateGroup[];
+  nationalities: NationalityOption[];
+  areaToGovernorate: Record<string, string>;
+}) {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('fileNumber');
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [pendingDelete, setPendingDelete] = useState<PatientRow | null>(null);
+  const [editing, setEditing] = useState<PatientRow | null>(null);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -70,6 +116,32 @@ export function PatientTable({ patients }: { patients: PatientRow[] }) {
 
   const arrow = (key: SortKey) =>
     key === sortKey ? <span className="arw">{sortDir === 1 ? '▲' : '▼'}</span> : null;
+
+  function handleEditSuccess() {
+    setEditing(null);
+    // Reload the server-rendered list so the row reflects the saved changes.
+    router.refresh();
+  }
+
+  // Close whichever modal is open on Escape, and lock background scroll while
+  // a dialog is showing.
+  const anyModalOpen = editing !== null || pendingDelete !== null;
+  useEffect(() => {
+    if (!anyModalOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setEditing(null);
+        setPendingDelete(null);
+      }
+    }
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [anyModalOpen]);
 
   return (
     <>
@@ -128,7 +200,7 @@ export function PatientTable({ patients }: { patients: PatientRow[] }) {
                   <td>{p.mobile1}</td>
                   <td>
                     <div className="row-actions">
-                      <Link href={`/patients/${p.id}/edit`} className="btn btn-ghost btn-sm">Edit</Link>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setEditing(p)}>Edit</button>
                       <button className="btn btn-danger btn-sm" onClick={() => setPendingDelete(p)}>
                         Delete
                       </button>
@@ -156,8 +228,52 @@ export function PatientTable({ patients }: { patients: PatientRow[] }) {
         )}
       </div>
 
+      {/* Edit modal -------------------------------------------------------- */}
+      {editing && (
+        <div
+          className="modal-back"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Edit patient"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setEditing(null);
+          }}
+        >
+          <div className="modal modal-lg">
+            <div className="modal-head">
+              <div>
+                <h3 style={{ margin: 0 }}>Edit patient</h3>
+                <div className="muted small">
+                  {fullName(editing)} · <span className="fileno">{editing.fileNumber}</span>
+                </div>
+              </div>
+              <button className="modal-close" aria-label="Close" onClick={() => setEditing(null)}>×</button>
+            </div>
+            <PatientForm
+              mode="edit"
+              variant="modal"
+              action={updatePatientAction}
+              governorates={governorates}
+              nationalities={nationalities}
+              areaToGovernorate={areaToGovernorate}
+              initial={toFormValues(editing)}
+              onSuccess={handleEditSuccess}
+              onCancel={() => setEditing(null)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Delete confirmation ---------------------------------------------- */}
       {pendingDelete && (
-        <div className="modal-back" role="dialog" aria-modal="true">
+        <div
+          className="modal-back"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setPendingDelete(null);
+          }}
+        >
           <div className="modal">
             <div className="modal-body">
               <h3>Delete patient?</h3>

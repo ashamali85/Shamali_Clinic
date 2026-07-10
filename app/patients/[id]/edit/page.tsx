@@ -2,10 +2,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { updatePatientAction } from '@/lib/actions';
 import { loadPatientLookups } from '@/lib/lookups';
 import { TopBar } from '@/components/TopBar';
-import { PatientForm, type PatientFormValues } from '@/components/PatientForm';
+import { EditPatientPageForm } from '@/components/EditPatientPageForm';
+import type { PatientFormValues } from '@/components/PatientForm';
 import { fullName } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -56,9 +56,7 @@ export default async function EditPatientPage({
           {fullName({ firstName: patient.firstName, middleName: patient.middleName, lastName: patient.lastName })}
         </div>
         <h1 style={{ marginBottom: 18 }}>Edit patient</h1>
-        <PatientForm
-          mode="edit"
-          action={updatePatientAction}
+        <EditPatientPageForm
           governorates={governorates}
           nationalities={nationalities}
           areaToGovernorate={areaToGovernorate}
