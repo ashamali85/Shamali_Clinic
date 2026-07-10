@@ -64,6 +64,17 @@ export function PatientForm({
   const start = initial ?? EMPTY;
   const [areaId, setAreaId] = useState(start.areaId);
 
+  // Collapsible sections. All open by default; collapsing only hides a section
+  // visually — its inputs stay in the DOM so every field is still submitted.
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    identity: true,
+    contact: true,
+    address: true,
+    identifiers: true
+  });
+  const toggleSection = (key: string) =>
+    setOpenSections((s) => ({ ...s, [key]: !s[key] }));
+
   // When the server action reports success, notify the parent.
   useEffect(() => {
     if (state?.ok) onSuccess?.({ fileNumber: state.fileNumber });
@@ -80,8 +91,17 @@ export function PatientForm({
       {state?.error && <div className="alert alert-error">{state.error}</div>}
 
       {/* Identity ---------------------------------------------------------- */}
-      <div className="form-section">
-        <div className="form-section-title">Identity</div>
+      <section className={`form-section collapsible ${openSections.identity ? 'open' : 'collapsed'}`}>
+        <button
+          type="button"
+          className="form-section-header"
+          onClick={() => toggleSection('identity')}
+          aria-expanded={openSections.identity}
+        >
+          <span className="form-section-title">Identity</span>
+          <span className="chevron" aria-hidden="true" />
+        </button>
+        <div className="form-section-body">
         <div className="grid-3">
           <div className="field">
             <label htmlFor="firstName">First name <span className="req">*</span></label>
@@ -117,11 +137,21 @@ export function PatientForm({
             </select>
           </div>
         </div>
-      </div>
+        </div>
+      </section>
 
       {/* Contact ----------------------------------------------------------- */}
-      <div className="form-section">
-        <div className="form-section-title">Contact</div>
+      <section className={`form-section collapsible ${openSections.contact ? 'open' : 'collapsed'}`}>
+        <button
+          type="button"
+          className="form-section-header"
+          onClick={() => toggleSection('contact')}
+          aria-expanded={openSections.contact}
+        >
+          <span className="form-section-title">Contact</span>
+          <span className="chevron" aria-hidden="true" />
+        </button>
+        <div className="form-section-body">
         <div className="grid-2">
           <div className="field">
             <label htmlFor="mobile1">Mobile number 1 <span className="req">*</span></label>
@@ -136,11 +166,21 @@ export function PatientForm({
             <input id="email" name="email" type="email" placeholder="name@example.com" defaultValue={start.email} />
           </div>
         </div>
-      </div>
+        </div>
+      </section>
 
       {/* Address ----------------------------------------------------------- */}
-      <div className="form-section">
-        <div className="form-section-title">Address</div>
+      <section className={`form-section collapsible ${openSections.address ? 'open' : 'collapsed'}`}>
+        <button
+          type="button"
+          className="form-section-header"
+          onClick={() => toggleSection('address')}
+          aria-expanded={openSections.address}
+        >
+          <span className="form-section-title">Address</span>
+          <span className="chevron" aria-hidden="true" />
+        </button>
+        <div className="form-section-body">
         <div className="grid-2">
           <div className="field field-full">
             <label htmlFor="addressLine1">Address line 1</label>
@@ -180,11 +220,21 @@ export function PatientForm({
             />
           </div>
         </div>
-      </div>
+        </div>
+      </section>
 
       {/* Official identifiers --------------------------------------------- */}
-      <div className="form-section">
-        <div className="form-section-title">Official Identifiers</div>
+      <section className={`form-section collapsible ${openSections.identifiers ? 'open' : 'collapsed'}`}>
+        <button
+          type="button"
+          className="form-section-header"
+          onClick={() => toggleSection('identifiers')}
+          aria-expanded={openSections.identifiers}
+        >
+          <span className="form-section-title">Official Identifiers</span>
+          <span className="chevron" aria-hidden="true" />
+        </button>
+        <div className="form-section-body">
         <div className="grid-3">
           <div className="field">
             <label htmlFor="civilId">Civil ID number <span className="req">*</span></label>
@@ -204,7 +254,8 @@ export function PatientForm({
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </section>
     </>
   );
 

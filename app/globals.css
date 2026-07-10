@@ -59,6 +59,7 @@ h3 { font-size: 1.1rem; }
 .muted { color: var(--ink-soft); }
 .small { font-size: 0.85rem; }
 .center { text-align: center; }
+.page { padding: 26px 0 60px; }
 .mt-2 { margin-top: 8px; } .mt-4 { margin-top: 16px; } .mt-6 { margin-top: 24px; }
 
 /* Top bar ----------------------------------------------------------------- */
@@ -305,12 +306,31 @@ tbody tr:hover { background: var(--surface-2); }
 /* Stat tiles (reuse .stat from base; add female accent) ------------------ */
 .stat-num.pink { color: #a03878; }
 
-/* Form sections ---------------------------------------------------------- */
-.form-section { border-top: 1px solid var(--line); padding-top: 22px; margin-top: 22px; }
-.form-section:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+/* Form sections (collapsible) ------------------------------------------- */
+.form-section { border-top: 1px solid var(--line); margin-top: 6px; }
+.form-section:first-of-type { border-top: none; margin-top: 0; }
+
+/* Clickable header row that toggles the section. */
+.form-section-header { width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; background: none; border: none; cursor: pointer; font-family: inherit;
+  padding: 16px 2px; text-align: left; color: inherit; }
+.form-section-header:hover .form-section-title { color: var(--brand); }
+
 .form-section-title { font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase;
-  color: var(--brand-2); font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  color: var(--brand-2); font-weight: 800; display: flex; align-items: center; gap: 10px; margin: 0; }
 .form-section-title:before { content: ""; width: 20px; height: 2px; background: var(--brand-2); border-radius: 2px; }
+
+/* Chevron rotates when the section is open. */
+.chevron { width: 9px; height: 9px; border-right: 2px solid var(--ink-soft); border-bottom: 2px solid var(--ink-soft);
+  transform: rotate(-45deg); transition: transform 0.18s ease; margin-right: 4px; }
+.form-section.open .chevron { transform: rotate(45deg); }
+.form-section-header:hover .chevron { border-color: var(--brand); }
+
+/* Body: shown when open, removed from view when collapsed. Inputs stay in the
+   DOM either way so the form still submits every field. */
+.form-section-body { padding-bottom: 18px; }
+.form-section.collapsed .form-section-body { display: none; }
+
 .req { color: var(--danger); }
 .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
 @media (max-width: 640px) { .grid-3 { grid-template-columns: 1fr; } }
@@ -330,8 +350,11 @@ tbody tr:hover { background: var(--surface-2); }
 .empty-lg .icon { width: 54px; height: 54px; margin: 0 auto 12px; opacity: 0.5; }
 
 /* Sign-out button in the top bar ---------------------------------------- */
-.nav .who { color: #e4ecf8; font-size: 0.9rem; font-weight: 600; }
+.nav .who { color: #e4ecf8; font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nav .who b { color: #fff; }
+@media (max-width: 560px) {
+  .nav .who { display: none; }
+}
 
 /* Modal (delete confirmation) ------------------------------------------- */
 .modal-back { position: fixed; inset: 0; background: rgba(10,40,79,.45); display: grid; place-items: center; z-index: 70; padding: 20px; backdrop-filter: blur(2px); }
@@ -355,8 +378,9 @@ tbody tr:hover { background: var(--surface-2); }
 .modal-form-body { padding: 22px 24px; overflow-y: auto; }
 .modal-form-foot { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 24px;
   border-top: 1px solid var(--line); background: var(--surface-2); }
-/* In the modal the first form-section has no top divider/padding. */
-.modal-form-body .form-section:first-child { border-top: none; padding-top: 0; margin-top: 0; }
+/* In the modal the first section header needs no extra top padding. */
+.modal-form-body .form-section:first-child { border-top: none; }
+.modal-form-body .form-section:first-child .form-section-header { padding-top: 4px; }
 @media (max-width: 640px) {
   .modal-lg { max-height: 96vh; }
   .modal-form-body { padding: 18px 16px; }
