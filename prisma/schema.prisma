@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// SQLite for zero-setup local development. To move to Postgres for production,
+// change provider to "postgresql" and set DATABASE_URL to your connection string
+// (add `directUrl = env("DIRECT_URL")` if using a pooled Neon/Supabase URL).
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// Enums
+//
+// SQLite has no native enums, so these are stored as strings. The values are
+// validated in the application layer (zod) before they reach the database.
+// ----------------------------------------------------------------------------
+
+// Gender is a fixed two-value list per the clinic's intake form.
+//   MALE | FEMALE
+
+// UserRole controls who can do what once we grow beyond a single doctor login.
+//   DOCTOR      -> full access to the patient registry (the current user)
+//   RECEPTIONIST-> reserved for future use (create/edit patients, no deletes)
+
+// ----------------------------------------------------------------------------
+// Users (clinic staff who log in)
+// ----------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  username     String   @unique
+  email        String?  @unique
+  passwordHash String
+  role         String   @default("DOCTOR")
+  isActive     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  patientsCreated Patient[] @relation("PatientCreatedBy")
+  auditLogs       AuditLog[]
+}
+
+// ----------------------------------------------------------------------------
+// Lookup tables
+// ----------------------------------------------------------------------------
+
+// A Kuwait governorate (6 total). Parent of many Areas.
+model Governorate {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  nameAr       String?
+  displayOrder Int      @default(0)
+
+  areas Area[]
+}
+
+// A Kuwait residential area, each belonging to exactly one governorate.
+// This models the "Area is linked to Governorate" relationship the clinic
+// asked for: selecting an area determines the governorate automatically.
+model Area {
+  id            String  @id @default(cuid())
+  name          String  @unique
+  nameAr        String?
+  governorateId String
+
+  governorate Governorate @relation(fields: [governorateId], references: [id], onDelete: Cascade)
+  patients    Patient[]
+
+  @@index([governorateId])
+}
+
+// Nationality lookup (Kuwaiti, Saudi, Egyptian, Indian, ...).
+model Nationality {
+  id           String    @id @default(cuid())
+  name         String    @unique
+  displayOrder Int       @default(0)
+  patients     Patient[]
+}
+
+// ----------------------------------------------------------------------------
+// Patients
+// ----------------------------------------------------------------------------
+
+model Patient {
+  id String @id @default(cuid())
+
+  // System-generated, human-friendly file number, e.g. "MGH-2026-0001".
+  // Assigned once at creation and never changed.
+  fileNumber String @unique
+
+  // Identity
+  firstName  String
+  middleName String?
+  lastName   String
+  gender     String // "MALE" | "FEMALE"
+  dateOfBirth DateTime
+  nationalityId String
+
+  // Contact
+  mobile1 String
+  mobile2 String?
+  email   String?
+
+  // Address
+  addressLine1 String?
+  addressLine2 String?
+  areaId       String
+
+  // Official identifiers
+  civilId    String  @unique // 12-digit Kuwait Civil ID
+  paciNumber String? // Unified national address (PACI) number
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  nationality Nationality @relation(fields: [nationalityId], references: [id])
+  area        Area        @relation(fields: [areaId], references: [id])
+  createdBy   User?       @relation("PatientCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([lastName, firstName])
+  @@index([areaId])
+  @@index([nationalityId])
+}
+
+// ----------------------------------------------------------------------------
+// Sequence counter (for atomic file-number generation)
+// ----------------------------------------------------------------------------
+
+// A single-row-per-key counter, incremented inside a transaction so two
+// simultaneous "Add patient" submits can never receive the same file number.
+model Counter {
+  key   String @id
+  value Int    @default(0)
+}
+
+// ----------------------------------------------------------------------------
+// Audit log
+// ----------------------------------------------------------------------------
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String
+  action      String // e.g. "CREATE", "UPDATE", "DELETE"
+  entityType  String // e.g. "Patient"
+  entityId    String
+  entityName  String?
+  details     String?
+  createdAt   DateTime @default(now())
+
+  actor User @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+}
