@@ -388,16 +388,16 @@ tbody tr:hover { background: var(--surface-2); }
 
 /* Scrollable patient table (15-row viewport) ---------------------------- */
 .tbl-viewport {
-  /* Show exactly 15 body rows (each ≈89px, two-line cells), then scroll. The
-     44px title row and 49px filter row are sticky above the rows.
-     44 + 49 + 15×89 = 1428px. */
-  max-height: 1428px;
+  /* Show 10 body rows (each ≈89px, two-line cells), then scroll. The 44px title
+     row and 49px filter row are sticky above the rows. A few px of buffer keeps
+     the 10th row fully visible despite sub-pixel row-height rounding. */
+  max-height: 990px;
   overflow-y: auto;
   overflow-x: auto;
 }
 .patient-table { border-collapse: separate; border-spacing: 0; }
 /* Sticky header: both the title row and the filter row stick to the top. */
-.patient-table thead th { position: sticky; background: #f0ede2; z-index: 2; }
+.patient-table thead th { position: sticky; background: var(--surface); z-index: 2; }
 .patient-table thead tr:first-child th {
   top: 0; height: 44px; padding-top: 12px; padding-bottom: 12px;
   box-sizing: border-box;
