@@ -86,20 +86,55 @@ prisma/
 middleware.ts                Protects /patients routes
 ```
 
-## Switching to PostgreSQL (production)
+## Local development with SQLite (optional)
 
-1. In `prisma/schema.prisma`, change the datasource:
-   ```prisma
-   datasource db {
-     provider  = "postgresql"
-     url       = env("DATABASE_URL")
-     directUrl = env("DIRECT_URL")   // if using a pooled connection (Neon/Supabase)
-   }
-   ```
-2. Set `DATABASE_URL` (and `DIRECT_URL`) in `.env` to your Postgres connection string.
-3. Run `npm run setup` again.
+The schema ships configured for **PostgreSQL** (so it deploys to Vercel). If you
+prefer zero-setup local dev with SQLite instead, edit `prisma/schema.prisma`:
 
-No application code changes are needed — Prisma abstracts the database.
+```prisma
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+  // remove the directUrl line
+}
+```
+
+and set `DATABASE_URL="file:./dev.db"` in `.env`, then `npm run setup`.
+
+## Deploying to Vercel
+
+**Important:** Vercel's filesystem is read-only and ephemeral, so SQLite cannot
+be used in production — you need a hosted Postgres database (Neon, Supabase,
+Vercel Postgres, etc). The schema is already set up for Postgres.
+
+### 1. Create a Postgres database
+
+Create one on your provider of choice and copy two connection strings:
+- the **pooled** URL (for `DATABASE_URL`)
+- the **direct / non-pooled** URL (for `DIRECT_URL`)
+
+On Neon, the pooled host contains `-pooler`; the direct host does not.
+
+### 2. Set environment variables in Vercel
+
+Project → **Settings → Environment Variables** — add these for Production
+(and Preview if you want preview deploys to work):
+
+| Variable | Value |
+|----------|-------|
+| `DATABASE_URL` | your **pooled** Postgres connection string |
+| `DIRECT_URL` | your **direct** Postgres connection string |
+| `JWT_SECRET` | a random string ≥32 chars (`openssl rand -base64 48`) |
+
+### 3. Deploy
+
+Push the repo to GitHub and import it in Vercel (or run `vercel`). The build
+command (`prisma generate && prisma db push && tsx prisma/seed.ts && next build`)
+creates the tables, seeds the lookup data + demo doctor, and builds the app.
+
+The seed uses upserts, so redeploys never duplicate lookup data or touch your
+patient records. **Change the demo doctor password immediately after the first
+deploy.**
 
 ## Security notes
 
