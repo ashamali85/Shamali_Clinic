@@ -9,6 +9,8 @@
     "lint": "next lint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed:patients": "tsx prisma/seed-patients.ts",
+    "db:clear:patients": "tsx prisma/clear-patients.ts",
     "db:studio": "prisma studio",
     "setup": "prisma generate && prisma db push && tsx prisma/seed.ts",
     "postinstall": "prisma generate"

@@ -26,6 +26,27 @@ registry.
 - **zod** for input validation
 - Hand-written CSS design system (no Tailwind), matching the KUFPEC app
 
+## Generating test data
+
+To load the registry with realistic random patients (for testing search,
+sorting, and performance at scale):
+
+```bash
+npm run db:seed:patients          # creates 10,000 patients
+npm run db:seed:patients 500      # creates 500 instead
+COUNT=25000 npm run db:seed:patients
+
+npm run db:clear:patients         # removes ALL patients, resets file numbers
+```
+
+Each generated patient is complete and valid: gender-appropriate names, a real
+Area (with its linked Governorate) and Nationality from the lookup tables, a
+unique 12-digit Civil ID, a Kuwait mobile number, and an atomically-assigned
+file number. Run `npm run db:seed` first so the lookup tables exist.
+
+The clear script only empties the Patient table — it leaves the lookup tables,
+the doctor account, and the audit log untouched.
+
 ## Getting started
 
 Requires Node.js 18.18+ (Node 20+ recommended).
