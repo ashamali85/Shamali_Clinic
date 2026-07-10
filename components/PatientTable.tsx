@@ -78,33 +78,57 @@ export function PatientTable({
   const [pendingDelete, setPendingDelete] = useState<PatientRow | null>(null);
   const [editing, setEditing] = useState<PatientRow | null>(null);
 
+  // Per-column filters. Each narrows the list further (combined with AND).
+  const [colFilters, setColFilters] = useState({
+    fileNumber: '',
+    name: '',
+    gender: '', // '', 'MALE', 'FEMALE'
+    nationality: '',
+    area: '',
+    mobile: ''
+  });
+  const setCol = (key: keyof typeof colFilters, value: string) =>
+    setColFilters((f) => ({ ...f, [key]: value }));
+  const anyColFilter =
+    Object.values(colFilters).some((v) => v.trim() !== '');
+
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
-    let list = patients;
-    if (q) {
-      list = patients.filter((p) =>
-        [
-          fullName(p),
-          p.fileNumber,
-          p.civilId,
-          p.mobile1,
-          p.area,
-          p.governorate,
-          p.nationality,
-          p.email ?? ''
-        ]
-          .join(' ')
-          .toLowerCase()
-          .includes(q)
-      );
-    }
+    const f = {
+      fileNumber: colFilters.fileNumber.trim().toLowerCase(),
+      name: colFilters.name.trim().toLowerCase(),
+      gender: colFilters.gender,
+      nationality: colFilters.nationality.trim().toLowerCase(),
+      area: colFilters.area.trim().toLowerCase(),
+      mobile: colFilters.mobile.trim().toLowerCase()
+    };
+
+    let list = patients.filter((p) => {
+      // Global search across the most useful fields.
+      if (q) {
+        const hay = [
+          fullName(p), p.fileNumber, p.civilId, p.mobile1,
+          p.area, p.governorate, p.nationality, p.email ?? ''
+        ].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      // Per-column filters.
+      if (f.fileNumber && !p.fileNumber.toLowerCase().includes(f.fileNumber)) return false;
+      if (f.name && !`${fullName(p)} ${p.civilId}`.toLowerCase().includes(f.name)) return false;
+      if (f.gender && p.gender !== f.gender) return false;
+      if (f.nationality && !p.nationality.toLowerCase().includes(f.nationality)) return false;
+      if (f.area && !`${p.area} ${p.governorate}`.toLowerCase().includes(f.area)) return false;
+      if (f.mobile && !`${p.mobile1} ${p.mobile2 ?? ''}`.toLowerCase().includes(f.mobile)) return false;
+      return true;
+    });
+
     const sorted = [...list].sort((a, b) => {
       const va = sortKey === 'name' ? fullName(a).toLowerCase() : String(a[sortKey]).toLowerCase();
       const vb = sortKey === 'name' ? fullName(b).toLowerCase() : String(b[sortKey]).toLowerCase();
       return va < vb ? -sortDir : va > vb ? sortDir : 0;
     });
     return sorted;
-  }, [patients, query, sortKey, sortDir]);
+  }, [patients, query, colFilters, sortKey, sortDir]);
 
   function toggleSort(key: SortKey) {
     if (key === sortKey) setSortDir((d) => (d === 1 ? -1 : 1));
@@ -158,6 +182,17 @@ export function PatientTable({
             aria-label="Search patients"
           />
         </div>
+        {(anyColFilter || query) && (
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={() => {
+              setQuery('');
+              setColFilters({ fileNumber: '', name: '', gender: '', nationality: '', area: '', mobile: '' });
+            }}
+          >
+            Clear filters
+          </button>
+        )}
         <span className="muted small">
           {patients.length === 0
             ? ''
@@ -166,8 +201,8 @@ export function PatientTable({
       </div>
 
       <div className="table-card">
-        <div className="tbl-scroll">
-          <table>
+        <div className="tbl-scroll tbl-viewport">
+          <table className="patient-table">
             <thead>
               <tr>
                 <th className="sortable" onClick={() => toggleSort('fileNumber')}>File No {arrow('fileNumber')}</th>
@@ -177,6 +212,37 @@ export function PatientTable({
                 <th className="sortable" onClick={() => toggleSort('area')}>Area / Governorate {arrow('area')}</th>
                 <th className="sortable" onClick={() => toggleSort('mobile1')}>Mobile {arrow('mobile1')}</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+              <tr className="filter-row">
+                <th>
+                  <input className="col-filter" placeholder="Filter…" value={colFilters.fileNumber}
+                    onChange={(e) => setCol('fileNumber', e.target.value)} aria-label="Filter by file number" />
+                </th>
+                <th>
+                  <input className="col-filter" placeholder="Name or Civil ID…" value={colFilters.name}
+                    onChange={(e) => setCol('name', e.target.value)} aria-label="Filter by patient" />
+                </th>
+                <th>
+                  <select className="col-filter" value={colFilters.gender}
+                    onChange={(e) => setCol('gender', e.target.value)} aria-label="Filter by gender">
+                    <option value="">All</option>
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                  </select>
+                </th>
+                <th>
+                  <input className="col-filter" placeholder="Filter…" value={colFilters.nationality}
+                    onChange={(e) => setCol('nationality', e.target.value)} aria-label="Filter by nationality" />
+                </th>
+                <th>
+                  <input className="col-filter" placeholder="Area or gov…" value={colFilters.area}
+                    onChange={(e) => setCol('area', e.target.value)} aria-label="Filter by area or governorate" />
+                </th>
+                <th>
+                  <input className="col-filter" placeholder="Filter…" value={colFilters.mobile}
+                    onChange={(e) => setCol('mobile', e.target.value)} aria-label="Filter by mobile" />
+                </th>
+                <th aria-hidden="true" />
               </tr>
             </thead>
             <tbody>
