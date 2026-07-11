@@ -106,20 +106,27 @@ export function FilterSelect({
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') setOpen(false);
     }
-    // The table body scrolls, so close on any scroll to avoid the popover
-    // drifting away from its trigger.
-    function onScrollOrResize() {
+    // Close when an ancestor (the page or the table body) scrolls, so the
+    // popover never drifts away from its trigger — but NOT when the user is
+    // scrolling inside the popover's own capped list.
+    function onScroll(e: Event) {
+      if (popRef.current && e.target instanceof Node && popRef.current.contains(e.target)) {
+        return;
+      }
+      setOpen(false);
+    }
+    function onResize() {
       setOpen(false);
     }
     document.addEventListener('mousedown', onDown);
     document.addEventListener('keydown', onKey);
-    window.addEventListener('resize', onScrollOrResize);
-    window.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onScroll, true);
     return () => {
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onKey);
-      window.removeEventListener('resize', onScrollOrResize);
-      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onScroll, true);
     };
   }, [open]);
 
