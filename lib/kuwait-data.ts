@@ -80,3 +80,27 @@ export const NATIONALITIES: string[] = [
   'Pakistani', 'Bangladeshi', 'Sri Lankan', 'Nepali', 'Filipino', 'Indonesian',
   'Iranian', 'Turkish', 'British', 'American', 'Canadian', 'French', 'German', 'Other'
 ];
+
+// Maps each nationality to its ISO 3166-1 alpha-2 country code. Used to render a
+// flag next to the nationality in lookups. 'Other' has no country and is blank.
+export const NATIONALITY_ISO: Record<string, string> = {
+  Kuwaiti: 'KW', Saudi: 'SA', Bahraini: 'BH', Emirati: 'AE', Qatari: 'QA',
+  Omani: 'OM', Egyptian: 'EG', Syrian: 'SY', Jordanian: 'JO', Lebanese: 'LB',
+  Palestinian: 'PS', Iraqi: 'IQ', Yemeni: 'YE', Sudanese: 'SD', Indian: 'IN',
+  Pakistani: 'PK', Bangladeshi: 'BD', 'Sri Lankan': 'LK', Nepali: 'NP',
+  Filipino: 'PH', Indonesian: 'ID', Iranian: 'IR', Turkish: 'TR', British: 'GB',
+  American: 'US', Canadian: 'CA', French: 'FR', German: 'DE'
+};
+
+/**
+ * Turn a nationality name into a flag emoji, e.g. "Kuwaiti" -> "🇰🇼".
+ * Regional-indicator letters are derived from the ISO code. Returns '' for
+ * 'Other' or any unmapped value so callers can fall back gracefully.
+ */
+export function nationalityFlag(name: string): string {
+  const iso = NATIONALITY_ISO[name];
+  if (!iso) return '';
+  return iso
+    .toUpperCase()
+    .replace(/./g, (c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65));
+}

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { deletePatientAction, updatePatientAction } from '@/lib/actions';
+import { nationalityFlag } from '@/lib/kuwait-data';
 import { SubmitButton } from '@/components/SubmitButton';
 import {
   PatientForm,
@@ -92,6 +93,30 @@ export function PatientTable({
   const anyColFilter =
     Object.values(colFilters).some((v) => v.trim() !== '');
 
+  // Nationality options for the dropdown filter: only those actually present in
+  // the current patient set, alphabetised, each paired with its flag.
+  const nationalityOptions = useMemo(() => {
+    const present = new Set(patients.map((p) => p.nationality));
+    return nationalities
+      .filter((n) => present.has(n.name))
+      .map((n) => n.name)
+      .sort((a, b) => a.localeCompare(b));
+  }, [patients, nationalities]);
+
+  // Area options grouped by governorate, limited to areas present in the data.
+  const areaGroups = useMemo(() => {
+    const present = new Set(patients.map((p) => p.area));
+    return governorates
+      .map((g) => ({
+        governorate: g.governorate,
+        areas: g.areas
+          .map((a) => a.name)
+          .filter((name) => present.has(name))
+          .sort((a, b) => a.localeCompare(b))
+      }))
+      .filter((g) => g.areas.length > 0);
+  }, [patients, governorates]);
+
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     const f = {
@@ -116,8 +141,8 @@ export function PatientTable({
       if (f.fileNumber && !p.fileNumber.toLowerCase().includes(f.fileNumber)) return false;
       if (f.name && !`${fullName(p)} ${p.civilId}`.toLowerCase().includes(f.name)) return false;
       if (f.gender && p.gender !== f.gender) return false;
-      if (f.nationality && !p.nationality.toLowerCase().includes(f.nationality)) return false;
-      if (f.area && !`${p.area} ${p.governorate}`.toLowerCase().includes(f.area)) return false;
+      if (f.nationality && p.nationality.toLowerCase() !== f.nationality) return false;
+      if (f.area && p.area.toLowerCase() !== f.area) return false;
       if (f.mobile && !`${p.mobile1} ${p.mobile2 ?? ''}`.toLowerCase().includes(f.mobile)) return false;
       return true;
     });
@@ -231,12 +256,31 @@ export function PatientTable({
                   </select>
                 </th>
                 <th>
-                  <input className="col-filter" placeholder="Filter…" value={colFilters.nationality}
-                    onChange={(e) => setCol('nationality', e.target.value)} aria-label="Filter by nationality" />
+                  <select className="col-filter" value={colFilters.nationality}
+                    onChange={(e) => setCol('nationality', e.target.value)} aria-label="Filter by nationality">
+                    <option value="">All</option>
+                    {nationalityOptions.map((name) => {
+                      const flag = nationalityFlag(name);
+                      return (
+                        <option key={name} value={name}>
+                          {flag ? `${flag} ${name}` : name}
+                        </option>
+                      );
+                    })}
+                  </select>
                 </th>
                 <th>
-                  <input className="col-filter" placeholder="Area or gov…" value={colFilters.area}
-                    onChange={(e) => setCol('area', e.target.value)} aria-label="Filter by area or governorate" />
+                  <select className="col-filter" value={colFilters.area}
+                    onChange={(e) => setCol('area', e.target.value)} aria-label="Filter by area">
+                    <option value="">All</option>
+                    {areaGroups.map((g) => (
+                      <optgroup key={g.governorate} label={`${g.governorate} Governorate`}>
+                        {g.areas.map((name) => (
+                          <option key={name} value={name}>{name}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
                 </th>
                 <th>
                   <input className="col-filter" placeholder="Filter…" value={colFilters.mobile}

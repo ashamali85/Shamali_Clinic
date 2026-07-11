@@ -72,7 +72,7 @@ export default async function PatientsPage() {
           </div>
         </div>
 
-        <div className="section-title">
+        <div className="section-title" style={{ marginTop: 28 }}>
           <h1>Patients</h1>
           <Link href="/patients/new" className="btn btn-primary">＋ Add new patient</Link>
         </div>
