@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { deletePatientAction, updatePatientAction } from '@/lib/actions';
+import { formatDate, ageFromDob, genderLabel } from '@/lib/utils';
 import { SubmitButton } from '@/components/SubmitButton';
 import { FilterSelect, type FilterOption, type FilterOptionGroup } from '@/components/FilterSelect';
 import {
@@ -78,6 +79,7 @@ export function PatientTable({
   const [sortDir, setSortDir] = useState<1 | -1>(1);
   const [pendingDelete, setPendingDelete] = useState<PatientRow | null>(null);
   const [editing, setEditing] = useState<PatientRow | null>(null);
+  const [viewing, setViewing] = useState<PatientRow | null>(null);
 
   // Per-column filters. Each narrows the list further (combined with AND).
   const [colFilters, setColFilters] = useState({
@@ -124,6 +126,13 @@ export function PatientTable({
     { value: 'MALE', label: 'Male' },
     { value: 'FEMALE', label: 'Female' }
   ];
+
+  // Map nationality name -> ISO code so the view modal can show a flag.
+  const nationalityIso = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const n of nationalities) m.set(n.name, n.isoCode ?? null);
+    return m;
+  }, [nationalities]);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -182,13 +191,14 @@ export function PatientTable({
 
   // Close whichever modal is open on Escape, and lock background scroll while
   // a dialog is showing.
-  const anyModalOpen = editing !== null || pendingDelete !== null;
+  const anyModalOpen = editing !== null || pendingDelete !== null || viewing !== null;
   useEffect(() => {
     if (!anyModalOpen) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         setEditing(null);
         setPendingDelete(null);
+        setViewing(null);
       }
     }
     document.addEventListener('keydown', onKey);
@@ -308,6 +318,7 @@ export function PatientTable({
                   <td>{p.mobile1}</td>
                   <td>
                     <div className="row-actions">
+                      <button className="btn btn-ghost btn-sm" onClick={() => setViewing(p)}>View</button>
                       <button className="btn btn-ghost btn-sm" onClick={() => setEditing(p)}>Edit</button>
                       <button className="btn btn-danger btn-sm" onClick={() => setPendingDelete(p)}>
                         Delete
@@ -335,6 +346,131 @@ export function PatientTable({
           </div>
         )}
       </div>
+
+      {/* View modal -------------------------------------------------------- */}
+      {viewing && (() => {
+        const p = viewing;
+        const iso = nationalityIso.get(p.nationality) ?? null;
+        // dateOfBirth is a yyyy-mm-dd string; parse as local date for display.
+        const dob = new Date(`${p.dateOfBirth}T00:00:00`);
+        const dobValid = !Number.isNaN(dob.getTime());
+        return (
+          <div
+            className="modal-back"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Patient details"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setViewing(null);
+            }}
+          >
+            <div className="modal modal-lg">
+              <div className="modal-head">
+                <div>
+                  <h3 style={{ margin: 0 }}>{fullName(p)}</h3>
+                  <div className="muted small">
+                    <span className="fileno">{p.fileNumber}</span> · {genderLabel(p.gender)}
+                    {dobValid && ` · ${ageFromDob(dob)} yrs`}
+                  </div>
+                </div>
+                <button className="modal-close" aria-label="Close" onClick={() => setViewing(null)}>×</button>
+              </div>
+
+              <div className="modal-scroll">
+                <section className="view-section">
+                  <h4 className="view-section-title">Identity</h4>
+                  <dl className="view-grid">
+                    <div className="view-item">
+                      <dt>File number</dt>
+                      <dd className="fileno">{p.fileNumber}</dd>
+                    </div>
+                    <div className="view-item">
+                      <dt>Full name</dt>
+                      <dd>{fullName(p)}</dd>
+                    </div>
+                    <div className="view-item">
+                      <dt>Gender</dt>
+                      <dd>{genderLabel(p.gender)}</dd>
+                    </div>
+                    <div className="view-item">
+                      <dt>Date of birth</dt>
+                      <dd>{dobValid ? `${formatDate(dob)} (${ageFromDob(dob)} yrs)` : '—'}</dd>
+                    </div>
+                    <div className="view-item">
+                      <dt>Nationality</dt>
+                      <dd className="view-nat">
+                        {iso && <span className={`fi fi-${iso.toLowerCase()} view-flag`} aria-hidden="true" />}
+                        {p.nationality}
+                      </dd>
+                    </div>
+                    <div className="view-item">
+                      <dt>Civil ID</dt>
+                      <dd>{p.civilId}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section className="view-section">
+                  <h4 className="view-section-title">Contact</h4>
+                  <dl className="view-grid">
+                    <div className="view-item">
+                      <dt>Mobile</dt>
+                      <dd>{p.mobile1}</dd>
+                    </div>
+                    <div className="view-item">
+                      <dt>Alternate mobile</dt>
+                      <dd>{p.mobile2 || '—'}</dd>
+                    </div>
+                    <div className="view-item view-item-wide">
+                      <dt>Email</dt>
+                      <dd>{p.email || '—'}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section className="view-section">
+                  <h4 className="view-section-title">Address</h4>
+                  <dl className="view-grid">
+                    <div className="view-item">
+                      <dt>Area</dt>
+                      <dd>{p.area}</dd>
+                    </div>
+                    <div className="view-item">
+                      <dt>Governorate</dt>
+                      <dd>{p.governorate}</dd>
+                    </div>
+                    <div className="view-item view-item-wide">
+                      <dt>Address line 1</dt>
+                      <dd>{p.addressLine1 || '—'}</dd>
+                    </div>
+                    <div className="view-item view-item-wide">
+                      <dt>Address line 2</dt>
+                      <dd>{p.addressLine2 || '—'}</dd>
+                    </div>
+                    <div className="view-item">
+                      <dt>PACI number</dt>
+                      <dd>{p.paciNumber || '—'}</dd>
+                    </div>
+                  </dl>
+                </section>
+              </div>
+
+              <div className="modal-foot">
+                <button className="btn btn-ghost" onClick={() => setViewing(null)}>Close</button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setViewing(null);
+                    setEditing(p);
+                  }}
+                >
+                  Edit patient
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Edit modal -------------------------------------------------------- */}
       {editing && (

@@ -386,6 +386,41 @@ tbody tr:hover { background: var(--surface-2); }
   .modal-form-body { padding: 18px 16px; }
 }
 
+/* View patient modal (read-only details) -------------------------------- */
+.modal-scroll { padding: 4px 24px 8px; overflow-y: auto; min-height: 0; }
+.view-section { padding: 18px 0; border-top: 1px solid var(--line); }
+.view-section:first-child { border-top: none; }
+.view-section-title {
+  font-size: 0.72rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--brand); margin: 0 0 14px; display: flex; align-items: center; gap: 8px;
+}
+.view-section-title:before {
+  content: ""; width: 18px; height: 2px; background: var(--brand-2); border-radius: 2px;
+}
+.view-grid {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 28px; margin: 0;
+}
+.view-item { min-width: 0; }
+.view-item-wide { grid-column: 1 / -1; }
+.view-item dt {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--ink-soft); margin-bottom: 3px;
+}
+.view-item dd {
+  margin: 0; font-size: 0.95rem; font-weight: 500; color: var(--ink);
+  word-break: break-word;
+}
+.view-nat { display: flex; align-items: center; gap: 9px; }
+.view-flag {
+  flex: none; width: 22px; height: 16px; border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(16, 40, 79, 0.14); background-size: cover; background-position: center;
+}
+@media (max-width: 640px) {
+  .view-grid { grid-template-columns: 1fr; }
+  .modal-scroll { padding: 4px 16px 8px; }
+}
+
 /* Scrollable patient table (15-row viewport) ---------------------------- */
 .tbl-viewport {
   /* Show 10 body rows (each ≈89px, two-line cells), then scroll. The 44px title
