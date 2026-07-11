@@ -81,6 +81,7 @@ model Area {
 model Nationality {
   id           String    @id @default(cuid())
   name         String    @unique
+  isoCode      String?   // ISO 3166-1 alpha-2 country code, for flag display (e.g. "KW")
   displayOrder Int       @default(0)
   patients     Patient[]
 }

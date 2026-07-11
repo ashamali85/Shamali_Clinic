@@ -32,7 +32,7 @@ export async function loadPatientLookups(): Promise<{
 
   return {
     governorates,
-    nationalities: nationalities.map((n) => ({ id: n.id, name: n.name })),
+    nationalities: nationalities.map((n) => ({ id: n.id, name: n.name, isoCode: n.isoCode })),
     areaToGovernorate
   };
 }

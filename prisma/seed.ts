@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { KUWAIT_GOVERNORATES, NATIONALITIES } from '../lib/kuwait-data';
+import { KUWAIT_GOVERNORATES, NATIONALITIES, NATIONALITY_ISO } from '../lib/kuwait-data';
 
 const prisma = new PrismaClient();
 
@@ -29,10 +29,12 @@ async function main() {
 
   // --- Nationalities --------------------------------------------------------
   for (let i = 0; i < NATIONALITIES.length; i++) {
+    const name = NATIONALITIES[i];
+    const isoCode = NATIONALITY_ISO[name] ?? null;
     await prisma.nationality.upsert({
-      where: { name: NATIONALITIES[i] },
-      create: { name: NATIONALITIES[i], displayOrder: i },
-      update: { displayOrder: i }
+      where: { name },
+      create: { name, isoCode, displayOrder: i },
+      update: { isoCode, displayOrder: i }
     });
   }
   console.log(`  Nationalities: ${NATIONALITIES.length}`);

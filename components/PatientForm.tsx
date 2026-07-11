@@ -3,10 +3,11 @@
 import { useActionState, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { SubmitButton } from '@/components/SubmitButton';
+import { FilterSelect, type FilterOption } from '@/components/FilterSelect';
 
 export type AreaOption = { id: string; name: string; governorate: string };
 export type GovernorateGroup = { governorate: string; areas: AreaOption[] };
-export type NationalityOption = { id: string; name: string };
+export type NationalityOption = { id: string; name: string; isoCode?: string | null };
 
 export type PatientFormValues = {
   id?: string;
@@ -63,6 +64,14 @@ export function PatientForm({
   const [state, formAction] = useActionState<ActionState, FormData>(action, null);
   const start = initial ?? EMPTY;
   const [areaId, setAreaId] = useState(start.areaId);
+  const [nationalityId, setNationalityId] = useState(start.nationalityId);
+
+  // Nationality options for the custom dropdown, each with its flag ISO code.
+  const nationalityOptions: FilterOption[] = nationalities.map((n) => ({
+    value: n.id,
+    label: n.name,
+    iso: n.isoCode ?? null
+  }));
 
   // Collapsible sections. All open by default; collapsing only hides a section
   // visually — its inputs stay in the DOM so every field is still submitted.
@@ -129,12 +138,18 @@ export function PatientForm({
           </div>
           <div className="field">
             <label htmlFor="nationalityId">Nationality <span className="req">*</span></label>
-            <select id="nationalityId" name="nationalityId" defaultValue={start.nationalityId} required>
-              <option value="">Select…</option>
-              {nationalities.map((n) => (
-                <option key={n.id} value={n.id}>{n.name}</option>
-              ))}
-            </select>
+            <FilterSelect
+              name="nationalityId"
+              value={nationalityId}
+              onChange={setNationalityId}
+              options={nationalityOptions}
+              allLabel="Select…"
+              placeholder="Select…"
+              ariaLabel="Nationality"
+              showFlags
+              required
+              size="lg"
+            />
           </div>
         </div>
         </div>

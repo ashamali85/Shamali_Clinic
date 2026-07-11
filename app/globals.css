@@ -419,6 +419,88 @@ tbody tr:hover { background: var(--surface-2); }
 .col-filter:focus { outline: 2px solid var(--brand-tint); border-color: var(--brand); background: #fff; }
 select.col-filter { cursor: pointer; }
 
+/* Custom filter dropdown (nationality / area / gender) ------------------- */
+.filter-select { position: relative; width: 100%; }
+
+.filter-trigger {
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; font-family: inherit; font-size: 0.82rem; font-weight: 500;
+  padding: 6px 9px; min-height: 34px; cursor: pointer; text-align: left;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2);
+  color: var(--ink); transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+/* Larger variant that matches the full-size form inputs (used in PatientForm). */
+.filter-trigger-lg {
+  font-size: 0.95rem; padding: 10px 12px; min-height: 44px;
+  border-radius: var(--radius-sm); background: var(--surface);
+}
+.filter-trigger:hover { border-color: var(--brand-2); background: #fff; }
+.filter-trigger.is-open {
+  border-color: var(--brand); background: #fff;
+  box-shadow: 0 0 0 3px var(--brand-tint);
+}
+.filter-trigger.has-value { border-color: var(--brand-2); background: #fff; }
+
+.filter-trigger-content { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.filter-trigger-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-trigger-label.is-placeholder { color: var(--ink-soft); font-weight: 400; }
+
+.filter-chevron {
+  flex: none; width: 8px; height: 8px; border-right: 2px solid var(--ink-soft);
+  border-bottom: 2px solid var(--ink-soft); transform: rotate(45deg) translate(-1px, -1px);
+  transition: transform 0.18s ease; margin-right: 2px;
+}
+.filter-trigger.is-open .filter-chevron { transform: rotate(-135deg) translate(-1px, -1px); }
+
+/* Popover: portaled to body, position:fixed set inline. Capped height with its
+   own scroll so it never fills the screen. */
+.filter-pop {
+  z-index: 1000; width: max-content; max-width: 300px;
+  overflow-y: auto; overscroll-behavior: contain;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; box-shadow: var(--shadow);
+  padding: 6px;
+}
+.filter-pop-down { animation: filter-pop-down 0.14s ease; transform-origin: top; }
+.filter-pop-up { animation: filter-pop-up 0.14s ease; transform-origin: bottom; }
+@keyframes filter-pop-down {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes filter-pop-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.filter-list, .filter-sublist { list-style: none; margin: 0; padding: 0; }
+
+.filter-option {
+  width: 100%; display: flex; align-items: center; gap: 9px;
+  font-family: inherit; font-size: 0.86rem; font-weight: 500; text-align: left;
+  padding: 8px 10px; border: none; border-radius: 8px; background: transparent;
+  color: var(--ink); cursor: pointer; transition: background 0.1s ease, color 0.1s ease;
+}
+.filter-option:hover { background: var(--brand-tint); }
+.filter-option.is-active { background: var(--brand-tint); color: var(--brand); font-weight: 700; }
+
+.filter-option-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filter-option-all { font-style: italic; color: var(--ink-soft); font-weight: 600; }
+.filter-option.is-active .filter-option-all { color: var(--brand); font-style: normal; }
+.filter-option-check { flex: none; color: var(--brand); font-size: 0.8rem; }
+
+.filter-group + .filter-group { margin-top: 2px; }
+.filter-group-label {
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-soft); padding: 8px 10px 4px;
+}
+
+/* Flags */
+.filter-flag {
+  flex: none; width: 20px; height: 15px; border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(16, 40, 79, 0.12); background-size: cover;
+}
+.filter-flag-empty { box-shadow: none; background: transparent; }
+
 /* Keep the sticky header readable above scrolling rows */
 .patient-table tbody td { background: var(--surface); }
 .patient-table tbody tr:hover td { background: var(--surface-2); }

@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { deletePatientAction, updatePatientAction } from '@/lib/actions';
-import { nationalityFlag } from '@/lib/kuwait-data';
 import { SubmitButton } from '@/components/SubmitButton';
+import { FilterSelect, type FilterOption, type FilterOptionGroup } from '@/components/FilterSelect';
 import {
   PatientForm,
   type GovernorateGroup,
@@ -94,28 +94,36 @@ export function PatientTable({
     Object.values(colFilters).some((v) => v.trim() !== '');
 
   // Nationality options for the dropdown filter: only those actually present in
-  // the current patient set, alphabetised, each paired with its flag.
-  const nationalityOptions = useMemo(() => {
+  // the current patient set, alphabetised, each paired with its ISO code so the
+  // dropdown can render a flag.
+  const nationalityOptions = useMemo<FilterOption[]>(() => {
     const present = new Set(patients.map((p) => p.nationality));
+    const isoByName = new Map(nationalities.map((n) => [n.name, n.isoCode ?? null]));
     return nationalities
       .filter((n) => present.has(n.name))
-      .map((n) => n.name)
-      .sort((a, b) => a.localeCompare(b));
+      .map((n) => ({ value: n.name, label: n.name, iso: isoByName.get(n.name) ?? null }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [patients, nationalities]);
 
   // Area options grouped by governorate, limited to areas present in the data.
-  const areaGroups = useMemo(() => {
+  const areaGroups = useMemo<FilterOptionGroup[]>(() => {
     const present = new Set(patients.map((p) => p.area));
     return governorates
       .map((g) => ({
-        governorate: g.governorate,
-        areas: g.areas
+        label: `${g.governorate} Governorate`,
+        options: g.areas
           .map((a) => a.name)
           .filter((name) => present.has(name))
           .sort((a, b) => a.localeCompare(b))
+          .map((name) => ({ value: name, label: name }))
       }))
-      .filter((g) => g.areas.length > 0);
+      .filter((g) => g.options.length > 0);
   }, [patients, governorates]);
+
+  const genderOptions: FilterOption[] = [
+    { value: 'MALE', label: 'Male' },
+    { value: 'FEMALE', label: 'Female' }
+  ];
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -248,39 +256,29 @@ export function PatientTable({
                     onChange={(e) => setCol('name', e.target.value)} aria-label="Filter by patient" />
                 </th>
                 <th>
-                  <select className="col-filter" value={colFilters.gender}
-                    onChange={(e) => setCol('gender', e.target.value)} aria-label="Filter by gender">
-                    <option value="">All</option>
-                    <option value="MALE">Male</option>
-                    <option value="FEMALE">Female</option>
-                  </select>
+                  <FilterSelect
+                    value={colFilters.gender}
+                    onChange={(v) => setCol('gender', v)}
+                    options={genderOptions}
+                    ariaLabel="Filter by gender"
+                  />
                 </th>
                 <th>
-                  <select className="col-filter" value={colFilters.nationality}
-                    onChange={(e) => setCol('nationality', e.target.value)} aria-label="Filter by nationality">
-                    <option value="">All</option>
-                    {nationalityOptions.map((name) => {
-                      const flag = nationalityFlag(name);
-                      return (
-                        <option key={name} value={name}>
-                          {flag ? `${flag} ${name}` : name}
-                        </option>
-                      );
-                    })}
-                  </select>
+                  <FilterSelect
+                    value={colFilters.nationality}
+                    onChange={(v) => setCol('nationality', v)}
+                    options={nationalityOptions}
+                    ariaLabel="Filter by nationality"
+                    showFlags
+                  />
                 </th>
                 <th>
-                  <select className="col-filter" value={colFilters.area}
-                    onChange={(e) => setCol('area', e.target.value)} aria-label="Filter by area">
-                    <option value="">All</option>
-                    {areaGroups.map((g) => (
-                      <optgroup key={g.governorate} label={`${g.governorate} Governorate`}>
-                        {g.areas.map((name) => (
-                          <option key={name} value={name}>{name}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
+                  <FilterSelect
+                    value={colFilters.area}
+                    onChange={(v) => setCol('area', v)}
+                    groups={areaGroups}
+                    ariaLabel="Filter by area"
+                  />
                 </th>
                 <th>
                   <input className="col-filter" placeholder="Filter…" value={colFilters.mobile}
